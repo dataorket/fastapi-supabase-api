@@ -1,17 +1,28 @@
 name: RSS Import Scheduler
 
-# Schedule the workflow
 on:
   schedule:
-    - cron: '*/30 * * * *'   # runs every 30 minutes
-  workflow_dispatch:         # allows manual trigger from GitHub UI
+    - cron: "0 * * * *"  # runs every hour
+  workflow_dispatch:       # allows manual trigger
 
 jobs:
-  fetch_rss:
+  rss-import:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger FastAPI /articles/fetch
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
         run: |
-          curl -X POST "https://fastapi-supabase-api.onrender.com/articles/fetch" \
-          -H "accept: application/json"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run RSS import
+        run: |
+          curl -X POST https://fastapi-supabase-api.onrender.com/articles/fetch
 
