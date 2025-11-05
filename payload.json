@@ -1,0 +1,14 @@
+{
+  "feed_url": "https://example.com/rss",
+  "title": "Inserted from CLI",
+  "url": "https://example.com/article",
+  "author": "CLI tester",
+  "published": "2025-11-05",
+  "description": "posted from curl",
+  "summary": "summary here",
+  "category": "news",
+  "category_scores": {
+    "news": 0.9
+  }
+}
+
