@@ -1,0 +1,10 @@
+fastapi==0.121.0
+uvicorn==0.38.0
+python-dotenv==1.2.1
+psycopg2-binary==2.9.11
+pg8000==1.31.5
+feedparser==6.0.12
+pydantic==2.12.4
+python-dateutil==2.9.0.post0
+httpx==0.28.1
+orjson==3.11.4

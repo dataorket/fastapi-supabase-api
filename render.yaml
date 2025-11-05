@@ -1,0 +1,32 @@
+# render.yaml
+
+services:
+  - type: web
+    name: fastapi-supabase-api
+    env: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres:Supabase1!@db.fiupxaqbybacdojwztar.supabase.co:5432/postgres
+      - key: SUPABASE_URL
+        value: https://fiupxaqbybacdojwztar.supabase.co
+      - key: SUPABASE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpdXB4YXFieWJhY2Rvand6dGFyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTcwOTQwMCwiZXhwIjoyMDc3Mjg1NDAwfQ.Qs7vSHR5fuaKS1gDu8HXS9DcUvNMVBDr9lVenlSEBkw
+    autoDeploy: true
+    pullRequestAutoDeploy: true
+
+# Optional: cron job to fetch RSS automatically
+cronJobs:
+  - name: fetch-rss-latest
+    schedule: "0 * * * *" # Every hour
+    command: python main.py fetch_rss
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres:Supabase1!@db.fiupxaqbybacdojwztar.supabase.co:5432/postgres
+      - key: SUPABASE_URL
+        value: https://fiupxaqbybacdojwztar.supabase.co
+      - key: SUPABASE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpdXB4YXFieWJhY2Rvand6dGFyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTcwOTQwMCwiZXhwIjoyMDc3Mjg1NDAwfQ.Qs7vSHR5fuaKS1gDu8HXS9DcUvNMVBDr9lVenlSEBkw
