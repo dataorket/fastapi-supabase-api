@@ -1,50 +1,22 @@
 import os
 from fastapi import FastAPI, HTTPException
+import httpx
 from pydantic import BaseModel
-from urllib.parse import urlparse
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from dotenv import load_dotenv
-
-# Load .env locally (ignored on Render)
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise SystemExit("Please set DATABASE_URL in environment variables!")
-
-# Parse DATABASE_URL
-parsed = urlparse(DATABASE_URL)
-DB_USER = parsed.username
-DB_PASSWORD = parsed.password
-DB_HOST = parsed.hostname
-DB_PORT = parsed.port
-DB_NAME = parsed.path.lstrip("/")
-
-
-def get_db_connection():
-    try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT,
-            sslmode="require",
-            cursor_factory=RealDictCursor
-        )
-        return conn
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database connection failed: {e}")
-
 
 app = FastAPI()
 
-@app.get("/")
-def home():
-    return {"message": "✅ FastAPI is working on Render!"}
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json"
+}
 
+# --------------------------
+# Data model for POST request
+# --------------------------
 class Article(BaseModel):
     feed_url: str | None = None
     title: str
@@ -56,48 +28,35 @@ class Article(BaseModel):
     category: str | None = None
     category_scores: dict | None = None
 
-
+# --------------------------
+# GET articles via Supabase Edge Function
+# --------------------------
 @app.get("/articles")
-def get_articles(limit: int = 5):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT * FROM public.articles ORDER BY published DESC LIMIT %s;", (limit,)
-    )
-    articles = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"articles": articles}
+def get_articles():
+    try:
+        resp = httpx.get(f"{SUPABASE_URL}/functions/v1/articles-get-api", headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Request failed: {e}")
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"Error from Supabase: {e.response.text}")
 
-
+# --------------------------
+# POST new article via Supabase Edge Function
+# --------------------------
 @app.post("/articles")
 def post_article(article: Article):
-    conn = get_db_connection()
-    cur = conn.cursor()
     try:
-        cur.execute(
-            """
-            INSERT INTO public.articles 
-            (feed_url, title, url, author, published, description, summary, category, category_scores)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT (url) DO NOTHING
-            """,
-            (
-                article.feed_url,
-                article.title,
-                article.url,
-                article.author,
-                article.published,
-                article.description,
-                article.summary,
-                article.category,
-                article.category_scores
-            )
+        resp = httpx.post(
+            f"{SUPABASE_URL}/functions/v1/articles-post-api",
+            headers=HEADERS,
+            json=article.dict(),
+            timeout=10
         )
-        conn.commit()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Insert failed: {e}")
-    finally:
-        cur.close()
-        conn.close()
-    return {"message": "✅ Article inserted (if not duplicate)"}
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Request failed: {e}")
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"Error from Supabase: {e.response.text}")
